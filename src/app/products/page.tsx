@@ -2,8 +2,9 @@ import { prisma } from '@/lib/prisma'
 import { Sidebar } from '@/components/Sidebar'
 import { StatusBadge } from '@/components/StatusBadge'
 import { SyncButton } from '@/components/SyncButton'
+import { DeleteButton } from '@/components/DeleteButton'
 import { SyncAllButton } from '@/components/SyncAllButton'
-import { Plus, Search, Layers } from 'lucide-react'
+import { Plus, Search, Layers, Pencil } from 'lucide-react'
 import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
@@ -92,8 +93,16 @@ export default async function ProductsPage() {
                   <td className="px-6 py-5 text-center">
                     <StatusBadge status={p.status} />
                   </td>
-                  <td className="px-6 py-5 text-center">
+                  <td className="px-6 py-5 text-center flex items-center justify-center gap-2 mt-1">
+                    <Link 
+                      href={`/products/${p.id}/edit`}
+                      className="p-2 bg-slate-800 text-slate-400 hover:text-blue-400 rounded-lg transition-all"
+                      title="Edit Product"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </Link>
                     <SyncButton productId={p.id} initialStatus={p.status} />
+                    <DeleteButton productId={p.id} />
                   </td>
                 </tr>
               ))}

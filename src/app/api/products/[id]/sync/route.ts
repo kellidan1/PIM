@@ -4,10 +4,10 @@ import { syncProductToWoo } from '@/lib/woocommerce'
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> } // In Next.js 15+, params is a Promise
 ) {
   try {
-    const productId = params.id
+    const { id: productId } = await params
     
     // 1. Get current PIM product with attributes
     const pimProduct = await prisma.product.findUnique({
@@ -42,17 +42,18 @@ export async function POST(
     
     return NextResponse.json(result)
   } catch (error: any) {
+    const { id: productId } = await params
     console.error('Failed to sync product:', error)
     
     // Log the failure
     await prisma.syncLog.create({
       data: {
-        productId: params.id,
+        productId: productId,
         status: 'failed',
         message: error.message || 'Unknown sync error'
       }
     })
     
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 })
   }
 }

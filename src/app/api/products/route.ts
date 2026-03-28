@@ -38,8 +38,8 @@ export async function POST(req: NextRequest) {
         price: parseFloat(price),
         description,
         attributes: {
-          create: attributes.map((attr: { id: string, value: string }) => ({
-            attributeId: attr.id,
+          create: attributes.map((attr: { attributeId: string, value: string }) => ({
+            attributeId: attr.attributeId,
             value: attr.value
           }))
         }

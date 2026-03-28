@@ -4,10 +4,24 @@ import { prisma } from '@/lib/prisma'
 export async function GET(req: NextRequest) {
   try {
     const attributes = await prisma.attribute.findMany({
-      orderBy: { name: 'asc' }
+      orderBy: { name: 'asc' },
+      include: {
+        values: {
+          select: { value: true },
+          distinct: ['value']
+        }
+      }
     })
+
+    // Map to include a flat list of unique existing values
+    const result = attributes.map(attr => ({
+      id: attr.id,
+      name: attr.name,
+      type: attr.type,
+      existingValues: attr.values.map((v: { value: string }) => v.value)
+    }))
     
-    return NextResponse.json(attributes)
+    return NextResponse.json(result)
   } catch (error) {
     console.error('Failed to fetch attributes:', error)
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })

@@ -38,7 +38,7 @@ export function Sidebar() {
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-slate-800 border border-slate-700" />
           <div>
-            <p className="text-sm font-medium text-white">Hackathon User</p>
+            <p className="text-sm font-medium text-white">Kellidan Fernandes</p>
             <p className="text-xs text-slate-500">Admin</p>
           </div>
         </div>

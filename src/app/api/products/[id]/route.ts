@@ -38,42 +38,40 @@ export async function PUT(
     const body = await req.json()
     const { title, slug, sku, price, description, attributes } = body
 
-    // 1. Update core product fields
-    // We also reset status to 'pending' if it was 'synced', because data has changed
+    // 1. Update core product fields, reset sync status
     const updatedProduct = await prisma.product.update({
       where: { id: productId },
-      data: {
-        title,
-        slug,
-        sku,
-        price,
-        description,
-        status: 'pending' // Force re-sync
-      }
+      data: { title, slug, sku, price, description, status: 'pending' }
     })
 
-    // 2. Refresh attributes (Delete existing & Re-create)
-    // Using a transaction to ensure atomicity
-    await prisma.$transaction([
-      prisma.attributeValue.deleteMany({
-        where: { productId: productId }
-      }),
-      prisma.attributeValue.createMany({
-        data: attributes.map((attr: any) => ({
-          productId: productId,
-          attributeId: attr.attributeId,
-          value: attr.value
-        }))
-      }),
-      // Log the update
-      prisma.syncLog.create({
-        data: {
-          productId: productId,
-          status: 'success',
-          message: 'PIM Master Record updated. Ready for WooCommerce sync.'
-        }
+    // 2. Deduplicate incoming attributes (keep last occurrence per attributeId)
+    const deduped = Object.values(
+      (attributes as { attributeId: string; value: string }[]).reduce(
+        (acc, attr) => ({ ...acc, [attr.attributeId]: attr }),
+        {} as Record<string, { attributeId: string; value: string }>
+      )
+    )
+
+    // 3. Delete ALL existing attribute values for this product first
+    await prisma.attributeValue.deleteMany({ where: { productId } })
+
+    // 4. Re-create using upsert (safe against constraint violations)
+    for (const attr of deduped) {
+      await prisma.attributeValue.upsert({
+        where: { productId_attributeId: { productId, attributeId: attr.attributeId } },
+        update: { value: attr.value },
+        create: { productId, attributeId: attr.attributeId, value: attr.value }
       })
-    ])
+    }
+
+    // 5. Log the update
+    await prisma.syncLog.create({
+      data: {
+        productId,
+        status: 'success',
+        message: 'PIM Master Record updated. Ready for WooCommerce sync.'
+      }
+    })
 
     return NextResponse.json(updatedProduct)
   } catch (error: any) {
